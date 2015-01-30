@@ -12,7 +12,8 @@
 	],
 	"require": {
 		"php": ">=5.4.0",
-		"symfony/console": "2.7.*@dev"
+		"symfony/console": "2.7.*@dev",
+	    "symfony/finder": "2.5.*"
 	},
 	"require-dev": {
 		"phpunit/phpunit": "~4",
