@@ -102,28 +102,25 @@ class Model extends Transform
 			'has_many' => 'hasMany',
 			'belongs_to' => 'belongsTo',
 		];
-		$prefixLength = strlen('	protected ');
-		foreach ($relations as $relation => $relationFunction) {
-			$begin = strpos($content, '$_'.$relation);
-			$end = strpos($content, ');', $begin);
 
-			if ($begin !== false && $end !== false) {
-				$length = $end-$begin+2;
-				$declaration = substr($content, $begin, $length);
-				eval('$_relations = '.$declaration);
+		$regex = '/^\s*protected\s+\$_(?<relation>'.implode('|', array_keys($relations)).')\s*=\s*(?P<declaration>array\(.*?\);|\[.*?\];)/sm';
+		$content = preg_replace_callback($regex, function($matches) use ($relations) {
+			$relation = $matches['relation'];
+			$relationFunction = $relations[$relation];
+			$declaration = $matches['declaration'];
+			eval('$_relations = '.$declaration);
 
-				$newContent = [];
-				foreach ($_relations as $relationName => $relationProperties) {
-					$newContent[] = <<<EOF
-	function $relationName()
+			$newContent = [];
+			foreach ($_relations as $relationName => $relationProperties) {
+				$newContent[] = <<<EOF
+	public function $relationName()
 	{
 		return \$this->{$relationFunction}('{$relationProperties['model']}');
 	}
 EOF;
-				}
-				$content = substr_replace($content, implode(PHP_EOL.PHP_EOL, $newContent), $begin-$prefixLength, $length+$prefixLength);
 			}
-		}
+			return PHP_EOL.implode(PHP_EOL.PHP_EOL, $newContent);
+		}, $content);
 
 		return $content;
 	}
