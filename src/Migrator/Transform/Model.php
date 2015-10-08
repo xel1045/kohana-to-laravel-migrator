@@ -88,6 +88,7 @@ class Model extends Transform
 		// Update relations
 
 		$content = $this->convertRelations($content);
+		$content = $this->convertJoins($content);
 
 		// Save new model
 		$targetPath = $this->laravelPath.'/app/models/'. $className .'.php';
@@ -120,6 +121,30 @@ class Model extends Transform
 EOF;
 			}
 			return PHP_EOL.implode(PHP_EOL.PHP_EOL, $newContent);
+		}, $content);
+
+		return $content;
+	}
+
+	protected function convertJoins($content)
+	{
+		$regex = '/
+			join\s*\([\'"]
+			(?<join>[^\'"]+) # Match joined table
+			[\'"]
+			( # Check if there\'s a join type specified
+			  \s*,\s*[\'"]
+			  (?<join_type>[^\'"]+) # Match join type (left, right)
+			  [\'"]
+			)?
+			\s*\)\s*->\s*on\s*\(
+			(?<on>.+?) # Match on relation
+			\)
+		/xs';
+
+		$content = preg_replace_callback($regex, function($matches) {
+			$joinType = $matches['join_type'] ? $matches['join_type'].'Join': '';
+			return $joinType.'(\''.$matches['join'].'\', '.$matches['on'].' )';
 		}, $content);
 
 		return $content;
